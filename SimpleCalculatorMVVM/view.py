@@ -6,13 +6,14 @@ class CalculatorView(QMainWindow):
     calculate_signal = pyqtSignal(str)
     backspace_signal = pyqtSignal()
     clear_signal = pyqtSignal()
+    undo_signal = pyqtSignal()
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Simple Calculator MVVM")
+        self.setWindowTitle("Simple Calculator MVVM with Command")
         self.setFixedSize(450, 700)
 
-        # Стили
+        # Styles (identiques au code fourni)
         self.setStyleSheet("""
             QMainWindow {
                 background-color: #f5f6fa;
@@ -74,13 +75,13 @@ class CalculatorView(QMainWindow):
             }
         """)
 
-        # Главный виджет и компоновка
+        # Main widget et layout
         self.main_widget = QWidget()
         self.setCentralWidget(self.main_widget)
         self.layout = QVBoxLayout()
         self.main_widget.setLayout(self.layout)
 
-        # Поле ввода
+        # Champ d'affichage
         self.display = QLineEdit()
         self.display.setFixedHeight(80)
         self.display.setAlignment(Qt.AlignmentFlag.AlignRight)
@@ -88,7 +89,7 @@ class CalculatorView(QMainWindow):
         self.display.setFont(QFont("Arial", 24))
         self.layout.addWidget(self.display)
 
-        # Поле истории
+        # Champ d'historique
         self.history_display = QTextEdit()
         self.history_display.setFixedHeight(150)
         self.history_display.setReadOnly(True)
@@ -96,12 +97,12 @@ class CalculatorView(QMainWindow):
         self.history_display.setHtml("<b>История:</b><br>")
         self.layout.addWidget(self.history_display)
 
-        # Сетка кнопок
+        # Grille de boutons
         self.button_grid = QGridLayout()
         self.button_grid.setSpacing(8)
         self.layout.addLayout(self.button_grid)
 
-        # Макет кнопок
+        # Layout des boutons (ajout du bouton Undo)
         button_layout = [
             ('C', 0, 0, 'function'), ('⌫', 0, 1, 'function'), ('(', 0, 2), (')', 0, 3), ('÷', 0, 4, 'operator'),
             ('sin', 1, 0, 'function'), ('cos', 1, 1, 'function'), ('7', 1, 2), ('8', 1, 3), ('9', 1, 4),
@@ -109,9 +110,10 @@ class CalculatorView(QMainWindow):
             ('√', 3, 0, 'function'), ('π', 3, 1, 'function'), ('1', 3, 2), ('2', 3, 3), ('3', 3, 4),
             ('e', 4, 0, 'function'), ('^', 4, 1, 'operator'), ('0', 4, 2), ('.', 4, 3), ('=', 4, 4, 'equals'),
             ('log', 5, 0, 'function'), ('%', 5, 1, 'operator'), ('×', 5, 2, 'operator'), ('−', 5, 3, 'operator'), ('+', 5, 4, 'operator'),
+            ('Undo', 6, 0, 'function', 5)  # Bouton Undo ajouté
         ]
 
-        # Создание кнопок
+        # Création des boutons
         self.buttons = {}
         for text, row, col, *style in button_layout:
             button = QPushButton(text)
@@ -127,6 +129,8 @@ class CalculatorView(QMainWindow):
                 button.setText("×")
             elif text == '^':
                 button.setText("x^y")
+            if text == 'Undo' and len(style) > 1:
+                button.setFixedWidth(80 * style[1])  # Largeur ajustée pour Undo
             self.button_grid.addWidget(button, row, col)
             self.buttons[text] = button
             button.clicked.connect(lambda _, t=text: self.on_button_click(t))
@@ -139,6 +143,8 @@ class CalculatorView(QMainWindow):
             self.clear_signal.emit()
         elif char == '⌫':
             self.backspace_signal.emit()
+        elif char == 'Undo':
+            self.undo_signal.emit()
         else:
             current_text = self.display.text()
             self.display.setText(current_text + char.replace('*', '×').replace('-', '−').replace('^', 'x^y'))
